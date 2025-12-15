@@ -1,0 +1,180 @@
+services:
+  # PostgreSQL Database - Using host PostgreSQL
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: shorturl_postgres
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER:-dipu}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dipu}
+  #     POSTGRES_DB: ${POSTGRES_DB:-fastapi_db}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dipu}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - app_network
+
+  # MongoDB Database - Using host MongoDB
+  # mongodb:
+  #   image: mongo:7-jammy
+  #   container_name: shorturl_mongodb
+  #   environment:
+  #     MONGO_INITDB_DATABASE: ${MONGODB_DB_NAME:-chat_db}
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #   ports:
+  #     - "27017:27017"
+  #   healthcheck:
+  #     test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - app_network
+
+  # Redis Cache - Using host Redis
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: shorturl_redis
+  #   command: redis-server --appendonly yes
+  #   volumes:
+  #     - redis_data:/data
+  #   ports:
+  #     - "6379:6379"
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - app_network
+
+  # RabbitMQ Message Broker
+  # Using host RabbitMQ - container commented out
+  # rabbitmq:
+  #   image: rabbitmq:3-management-alpine
+  #   container_name: shorturl_rabbitmq
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+  #     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+  #   volumes:
+  #     - rabbitmq_data:/var/lib/rabbitmq
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
+  #   healthcheck:
+  #     test: rabbitmq-diagnostics -q ping
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - app_network
+
+  # FastAPI Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_backend_app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+      - app_logs:/app/logs
+    ports:
+      - "8002:8000"
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_SQL_URL=postgresql://${POSTGRES_USER:-dipu}:${POSTGRES_PASSWORD:-dipu}@host.docker.internal:5432/${POSTGRES_DB:-fastapi_db}
+      - MONGODB_URL=mongodb://host.docker.internal:27017
+      - MONGODB_DB_NAME=${MONGODB_DB_NAME:-chat_db}
+      - REDIS_URL=redis://host.docker.internal:6379
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@host.docker.internal:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+    networks:
+      - app_network
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_backend_celery_worker
+    command: celery -A src.configure.celery:celery_app worker --loglevel=info --logfile=/app/logs/celery_worker.log
+    volumes:
+      - .:/app
+      - app_logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_SQL_URL=postgresql://${POSTGRES_USER:-dipu}:${POSTGRES_PASSWORD:-dipu}@host.docker.internal:5432/${POSTGRES_DB:-fastapi_db}
+      - MONGODB_URL=mongodb://host.docker.internal:27017
+      - MONGODB_DB_NAME=${MONGODB_DB_NAME:-chat_db}
+      - REDIS_URL=redis://host.docker.internal:6379
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@host.docker.internal:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+    networks:
+      - app_network
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Celery Beat Scheduler
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_backend_celery_beat
+    command: celery -A src.configure.celery:celery_app beat --loglevel=info --logfile=/app/logs/celery_beat.log
+    volumes:
+      - .:/app
+      - app_logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_SQL_URL=postgresql://${POSTGRES_USER:-dipu}:${POSTGRES_PASSWORD:-dipu}@host.docker.internal:5432/${POSTGRES_DB:-fastapi_db}
+      - MONGODB_URL=mongodb://host.docker.internal:27017
+      - MONGODB_DB_NAME=${MONGODB_DB_NAME:-chat_db}
+      - REDIS_URL=redis://host.docker.internal:6379
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@host.docker.internal:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+    networks:
+      - app_network
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: fastapi_backend_nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    ports:
+      - "8080:80"
+      - "8443:443"
+    depends_on:
+      - app
+    networks:
+      - app_network
+    restart: unless-stopped
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+  rabbitmq_data:
+  app_logs:

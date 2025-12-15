@@ -1,0 +1,14 @@
+credentials/
+*.log
+temp/
+venv/
+.env
+__pycache__/   
+*.pyc
+*.pyo
+*__pycache__/
+
+.env_example
+.env
+credentials/*.json
+*.json  # Or more specific if needed in credentials/

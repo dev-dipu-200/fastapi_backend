@@ -1,0 +1,153 @@
+{
+  "family": "shorturl-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "shorturl-app",
+      "image": "YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/shorturl-app:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "name": "POSTGRES_SQL_URL",
+          "value": "postgresql://USER:PASS@RDS_ENDPOINT:5432/fastapi_db"
+        },
+        {
+          "name": "MONGODB_URL",
+          "value": "mongodb://DOCUMENTDB_ENDPOINT:27017"
+        },
+        {
+          "name": "REDIS_URL",
+          "value": "redis://ELASTICACHE_ENDPOINT:6379"
+        },
+        {
+          "name": "CELERY_BROKER_URL",
+          "value": "amqp://guest:guest@RABBITMQ_ENDPOINT:5672//"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:YOUR_AWS_ACCOUNT_ID:secret:shorturl/SECRET_KEY"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:YOUR_AWS_ACCOUNT_ID:secret:shorturl/OPENAI_API_KEY"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/shorturl-app",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/api/ || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    },
+    {
+      "name": "celery-worker",
+      "image": "YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/shorturl-app:latest",
+      "essential": true,
+      "command": [
+        "celery",
+        "-A",
+        "src.configure.celery:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--logfile=/app/logs/celery_worker.log"
+      ],
+      "environment": [
+        {
+          "name": "ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "name": "POSTGRES_SQL_URL",
+          "value": "postgresql://USER:PASS@RDS_ENDPOINT:5432/fastapi_db"
+        },
+        {
+          "name": "MONGODB_URL",
+          "value": "mongodb://DOCUMENTDB_ENDPOINT:27017"
+        },
+        {
+          "name": "REDIS_URL",
+          "value": "redis://ELASTICACHE_ENDPOINT:6379"
+        },
+        {
+          "name": "CELERY_BROKER_URL",
+          "value": "amqp://guest:guest@RABBITMQ_ENDPOINT:5672//"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:YOUR_AWS_ACCOUNT_ID:secret:shorturl/SECRET_KEY"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:YOUR_AWS_ACCOUNT_ID:secret:shorturl/OPENAI_API_KEY"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/shorturl-celery-worker",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    },
+    {
+      "name": "celery-beat",
+      "image": "YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/shorturl-app:latest",
+      "essential": true,
+      "command": [
+        "celery",
+        "-A",
+        "src.configure.celery:celery_app",
+        "beat",
+        "--loglevel=info",
+        "--logfile=/app/logs/celery_beat.log"
+      ],
+      "environment": [
+        {
+          "name": "ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "name": "CELERY_BROKER_URL",
+          "value": "amqp://guest:guest@RABBITMQ_ENDPOINT:5672//"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/shorturl-celery-beat",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
