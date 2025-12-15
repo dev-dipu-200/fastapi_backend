@@ -1,17 +1,11 @@
 # src/configure/celery.py
-import os
 from celery import Celery
 from celery.schedules import crontab
+from src.configure.settings import settings
 
-# Get broker URL from environment variable or use default
-CELERY_BROKER_URL = os.getenv(
-    "CELERY_BROKER_URL",
-    "amqp://guest:guest@localhost:5672//"
-)
-CELERY_RESULT_BACKEND = os.getenv(
-    "CELERY_RESULT_BACKEND",
-    "rpc://"
-)
+# Get broker URL from settings (which has hardcoded fallbacks)
+CELERY_BROKER_URL = settings.CELERY_BROKER_URL
+CELERY_RESULT_BACKEND = settings.CELERY_RESULT_BACKEND
 
 celery_app = Celery(
     "workers",

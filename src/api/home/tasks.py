@@ -7,17 +7,15 @@ import json
 from src.models.url_model import SortUrls
 from src.models.user_model import Email, User
 from src.configure.database import AsyncSessionLocal
+from src.configure.settings import settings
 from sqlalchemy import select
 from datetime import datetime, timedelta
 from src.configure.celery import celery_app
-from dotenv import load_dotenv
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from msal import ConfidentialClientApplication
-
-load_dotenv("/var/www/Dipu/Fastapi_Pro/Sort_Url/.env")
 
 
 @celery_app.task(name="parse_gmail_emails_async")
@@ -34,7 +32,7 @@ def parse_gmail_emails_async(users: list[dict]):
         token_json = user["token_json"]
 
         SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-        creds_path = os.getenv("GOOGLE_CLIENT_SECRET_PATH")
+        creds_path = settings.GOOGLE_CLIENT_SECRET_PATH
 
         if not creds_path or not os.path.exists(creds_path):
             raise FileNotFoundError(f"Credentials file not found at: {creds_path}")
@@ -190,9 +188,9 @@ def fetch_emails_from_db_async(user_id: str = None, limit: int = 100):
 def parse_outlook_emails_async():
     async def _parse_outlook_emails():
         start_time = time.time()
-        CLIENT_ID = os.getenv("OUTLOOK_CLIENT_ID")
-        TENANT_ID = os.getenv("OUTLOOK_TENANT_ID")
-        CLIENT_SECRET = os.getenv("OUTLOOK_CLIENT_SECRET")
+        CLIENT_ID = settings.OUTLOOK_CLIENT_ID
+        TENANT_ID = settings.OUTLOOK_TENANT_ID
+        CLIENT_SECRET = settings.OUTLOOK_CLIENT_SECRET
         authority = f"https://login.microsoftonline.com/{TENANT_ID}"
         scope = ["https://graph.microsoft.com/.default"]
 

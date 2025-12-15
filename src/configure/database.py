@@ -26,7 +26,7 @@ async def get_db():
 
 # MongoDB Configuration
 MONGO_URI = settings.MONGODB_URL
-MONGO_DB_NAME = "chat_db"
+MONGO_DB_NAME = settings.MONGODB_DB_NAME
 mongo_client = None
 
 async def init_mongo():

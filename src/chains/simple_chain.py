@@ -1,11 +1,11 @@
-import os
 from openai import OpenAI
-from dotenv import load_dotenv
-load_dotenv()
+from src.configure.settings import settings
+
+# Initialize OpenAI client with Hugging Face API
 client = OpenAI(
     # base_url="https://router.huggingface.co/fireworks-ai/inference/v1",
     base_url="https://router.huggingface.co/v1",
-    api_key=os.getenv("HF_API_KEY"),
+    api_key=settings.HF_API_KEY,
 )
 
 async def open_ai_question(question: str) -> str:

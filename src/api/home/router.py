@@ -209,9 +209,11 @@ async def auth_gmail(
         logger.warning(f"User {current_user.get('email')} not authorized to authenticate user_id {user_id}")
         raise HTTPException(status_code=403, detail="Not authorized to authenticate this user")
 
+    from src.configure.settings import settings
+
     user_email = user.email  # Preload to avoid lazy loading
     SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-    creds_path = os.getenv("GOOGLE_CLIENT_SECRET_PATH")
+    creds_path = settings.GOOGLE_CLIENT_SECRET_PATH
     if not creds_path or not os.path.exists(creds_path):
         logger.error(f"Google credentials not found at {creds_path}")
         raise HTTPException(status_code=500, detail="Google credentials not configured")

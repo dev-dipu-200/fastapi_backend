@@ -13,5 +13,10 @@ __pycache__/
 credentials/*.json
 *.json  # Or more specific if needed in credentials/
 
-celerybeat-schedule
+celerybeat-schedule.py
+celerybeat-schedule.*
+CONFIGURATION.md
+QUICK_START.md
+
+test_config.py
 celerybeat-schedule.*
