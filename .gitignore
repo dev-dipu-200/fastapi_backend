@@ -12,3 +12,6 @@ __pycache__/
 .env
 credentials/*.json
 *.json  # Or more specific if needed in credentials/
+
+celerybeat-schedule
+celerybeat-schedule.*

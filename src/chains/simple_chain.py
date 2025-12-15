@@ -1,7 +1,7 @@
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-load_dotenv(".env")
+load_dotenv()
 client = OpenAI(
     # base_url="https://router.huggingface.co/fireworks-ai/inference/v1",
     base_url="https://router.huggingface.co/v1",
