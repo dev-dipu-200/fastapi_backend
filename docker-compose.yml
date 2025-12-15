@@ -86,7 +86,7 @@ services:
       - .:/app
       - app_logs:/app/logs
     ports:
-      - "8002:8000"
+      - "8005:8000"
     env_file:
       - .env
     environment:

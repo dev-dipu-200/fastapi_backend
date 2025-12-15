@@ -42,6 +42,7 @@ DEFAULT_CONFIG = {
     "OUTLOOK_CLIENT_ID": "",
     "OUTLOOK_TENANT_ID": "",
     "OUTLOOK_CLIENT_SECRET": "",
+    "GROQ_API_KEY": "",
 
     # Environment
     "ENVIRONMENT": "development",
@@ -68,6 +69,7 @@ class Settings:
     OUTLOOK_TENANT_ID: str
     OUTLOOK_CLIENT_SECRET: str
     ENVIRONMENT: str
+    GROQ_API_KEY: str
 
     def __init__(self):
         # Load all settings with hardcoded fallbacks
@@ -101,6 +103,7 @@ class Settings:
         # API Keys
         self.OPENAI_API_KEY = self._get_env("OPENAI_API_KEY", DEFAULT_CONFIG["OPENAI_API_KEY"])
         self.HF_API_KEY = self._get_env("HF_API_KEY", DEFAULT_CONFIG["HF_API_KEY"])
+        self.GROQ_API_KEY = self._get_env("GROQ_API_KEY", DEFAULT_CONFIG["GROQ_API_KEY"])
 
         # OAuth Credentials
         self.GOOGLE_CLIENT_SECRET_PATH = self._get_env(
